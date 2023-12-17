@@ -1,6 +1,5 @@
 import os
-from collections import deque
-from pprint import pprint
+from heapq import heappush, heappop
 
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, "input.txt")
@@ -8,84 +7,110 @@ filename = os.path.join(dirname, "input.txt")
 map = []
 
 
-def get_neighbors(pos):
-    out = []
-    if pos[0] - 1 >= 0:
-        out.append((pos[0] - 1, pos[1]))
-    if pos[0] + 1 < len(map[pos[1]]):
-        out.append((pos[0] + 1, pos[1]))
-    if pos[1] - 1 >= 0:
-        out.append((pos[0], pos[1] - 1))
-    if pos[1] + 1 < len(map):
-        out.append((pos[0], pos[1] + 1))
-    return out
-
-
-def must_change_direction(buffer):
-    if len(buffer) < 3:
-        return False, None
-    if len(set(buffer)) == 1:
-        if buffer[0] == "^" or buffer[0] == "v":
-            return True, "v"
-        if buffer[0] == "<" or buffer[0] == ">":
-            return True, "h"
-    return False, None
-
-
-def get_direction_sign(prev, pos):
-    if prev[0] == pos[0] and pos[1] < prev[1]:
-        return "^"
-    if prev[0] == pos[0] and pos[1] > prev[1]:
-        return "v"
-    if prev[1] == pos[1] and pos[0] < prev[0]:
-        return "<"
-    if prev[1] == pos[1] and pos[0] > prev[0]:
-        return ">"
-    return None
-
-
 def main_one():
-    weights = [[0 for _ in range(len(map[row]))] for row in range(len(map))]
-    start = (len(map[-1]) - 1, len(map) - 1)
     visited = set()
-    queue = deque([start])
-    while len(queue) > 0:
-        pos = queue.popleft()
-        if pos in visited:
-            continue
-        visited.add(pos)
-        neighbors = get_neighbors(pos)
-        for neighbor in neighbors:
-            queue.append(neighbor)
-            weights[neighbor[1]][neighbor[0]] = \
-                weights[pos[1]][pos[0]] + map[pos[1]][pos[0]]
+    heap = [(0, 0, 0, 0, 0, 0)]
+    while heap:
+        score, row, col, dir_row, dir_col, moves_number = heappop(heap)
 
-    path = deque([(0, 0)])
-    buffer = deque(maxlen=3)
-    while (len(map[-1]) - 1, len(map) - 1) not in path:
-        pos = path[-1]
-        neighbors = get_neighbors(pos)
-        must, direction = must_change_direction(buffer)
-        neighbors = [x for x in neighbors if x not in path]
-        if must:
-            if direction == "h":
-                neighbors = [x for x in neighbors if x[1] != pos[1]]
-            if direction == "v":
-                neighbors = [x for x in neighbors if x[0] != pos[0]]
-        next = min(neighbors, key=lambda x: weights[x[1]][x[0]])
-        path.append(next)
-        buffer.append(get_direction_sign(pos, next))
-    sum = 0
-    for pos in path:
-        sum += map[pos[1]][pos[0]]
-        map[pos[1]][pos[0]] = 0
-    print(sum)
-    pprint(weights)
-    pprint(map)
+        if (row, col) == (len(map) - 1, len(map[0]) - 1):
+            print(score)
+            break
+
+        if (row, col, dir_row, dir_col, moves_number) in visited:
+            continue
+
+        visited.add((row, col, dir_row, dir_col, moves_number))
+
+        if moves_number < 3 and (dir_row, dir_col) != (0, 0):
+            next_row = row + dir_row
+            next_col = col + dir_col
+            if 0 <= next_row < len(map) and 0 <= next_col < len(map[0]):
+                heappush(
+                    heap,
+                    (
+                        score + map[next_row][next_col],
+                        next_row,
+                        next_col,
+                        dir_row,
+                        dir_col,
+                        moves_number + 1,
+                    ),
+                )
+
+        for next_dir_row, next_dir_col in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            if (next_dir_row, next_dir_col) != (dir_row, dir_col) and (
+                next_dir_row,
+                next_dir_col,
+            ) != (-dir_row, -dir_col):
+                next_row = row + next_dir_row
+                next_col = col + next_dir_col
+                if 0 <= next_row < len(map) and 0 <= next_col < len(map[0]):
+                    heappush(
+                        heap,
+                        (
+                            score + map[next_row][next_col],
+                            next_row,
+                            next_col,
+                            next_dir_row,
+                            next_dir_col,
+                            1,
+                        ),
+                    )
 
 
 def main_two():
-    pass
+    visited = set()
+    heap = [(0, 0, 0, 0, 0, 0)]
+
+    while heap:
+        score, row, col, dir_row, dir_col, moves_number = heappop(heap)
+
+        if (row, col) == (len(map) - 1, len(map[0]) - 1):
+            print(score)
+            break
+
+        if (row, col, dir_row, dir_col, moves_number) in visited:
+            continue
+
+        visited.add((row, col, dir_row, dir_col, moves_number))
+
+        if moves_number < 10 and (dir_row, dir_col) != (0, 0):
+            next_row = row + dir_row
+            next_col = col + dir_col
+            if 0 <= next_row < len(map) and 0 <= next_col < len(map[0]):
+                heappush(
+                    heap,
+                    (
+                        score + map[next_row][next_col],
+                        next_row,
+                        next_col,
+                        dir_row,
+                        dir_col,
+                        moves_number + 1,
+                    ),
+                )
+
+        if moves_number >= 4 or (dir_row, dir_col) == (0, 0):
+            for next_dir_row, next_dir_col in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                if (next_dir_row, next_dir_col) != (dir_row, dir_col) and (
+                    next_dir_row,
+                    next_dir_col,
+                ) != (-dir_row, -dir_col):
+                    next_row = row + next_dir_row
+                    next_col = col + next_dir_col
+                    if 0 <= next_row < len(map) and 0 <= next_col < len(map[0]):
+                        heappush(
+                            heap,
+                            (
+                                score + map[next_row][next_col],
+                                next_row,
+                                next_col,
+                                next_dir_row,
+                                next_dir_col,
+                                1,
+                            ),
+                        )
 
 
 if __name__ == "__main__":
