@@ -24,11 +24,24 @@ def get_neighbors(pos):
 def must_change_direction(buffer):
     if len(buffer) < 3:
         return False, None
-    if buffer[0][0] == buffer[1][0] == buffer[2][0]:
-        return True, "v"
-    if buffer[0][1] == buffer[1][1] == buffer[2][1]:
-        return True, "h"
+    if len(set(buffer)) == 1:
+        if buffer[0] == "^" or buffer[0] == "v":
+            return True, "v"
+        if buffer[0] == "<" or buffer[0] == ">":
+            return True, "h"
     return False, None
+
+
+def get_direction_sign(prev, pos):
+    if prev[0] == pos[0] and pos[1] < prev[1]:
+        return "^"
+    if prev[0] == pos[0] and pos[1] > prev[1]:
+        return "v"
+    if prev[1] == pos[1] and pos[0] < prev[0]:
+        return "<"
+    if prev[1] == pos[1] and pos[0] > prev[0]:
+        return ">"
+    return None
 
 
 def main_one():
@@ -44,9 +57,8 @@ def main_one():
         neighbors = get_neighbors(pos)
         for neighbor in neighbors:
             queue.append(neighbor)
-            if neighbor not in visited:
-                weights[neighbor[1]][neighbor[0]] = \
-                    weights[pos[1]][pos[0]] + map[pos[1]][pos[0]]
+            weights[neighbor[1]][neighbor[0]] = \
+                weights[pos[1]][pos[0]] + map[pos[1]][pos[0]]
 
     path = deque([(0, 0)])
     buffer = deque(maxlen=3)
@@ -62,7 +74,7 @@ def main_one():
                 neighbors = [x for x in neighbors if x[0] != pos[0]]
         next = min(neighbors, key=lambda x: weights[x[1]][x[0]])
         path.append(next)
-        buffer.append(next)
+        buffer.append(get_direction_sign(pos, next))
     sum = 0
     for pos in path:
         sum += map[pos[1]][pos[0]]
